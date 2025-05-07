@@ -102,17 +102,19 @@ function VideoUploader() {
       <h3>Your Videos</h3>
       {loading && <div>Loading...</div>}
       <ul>
-        {videos.map((v) => (
-          <li key={v.key} style={{ marginBottom: '1em' }}>
-            <strong>{v.key.replace(/^public\//, '')}</strong><br />
-            <button onClick={() => handlePlay(v.key)} disabled={loading}>
-              Play
-            </button>{" "}
-            <button onClick={() => handleDelete(v.key)} disabled={loading}>
-              Delete
-            </button>
-          </li>
-        ))}
+        {videos
+          .filter((v) => v && v.key) // Only include items with a key
+          .map((v) => (
+            <li key={v.key} style={{ marginBottom: '1em' }}>
+              <strong>{v.key.replace(/^public\//, '')}</strong><br />
+              <button onClick={() => handlePlay(v.key)} disabled={loading}>
+                Play
+              </button>{" "}
+              <button onClick={() => handleDelete(v.key)} disabled={loading}>
+                Delete
+              </button>
+            </li>
+          ))}
       </ul>
       {playingUrl && (
         <div>
