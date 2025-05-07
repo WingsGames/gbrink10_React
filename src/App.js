@@ -53,7 +53,7 @@ function VideoUploader() {
     try {
       setLoading(true);
       await uploadData({
-        key: file.name,
+        key: `public/${file.name}`, // FIXED: upload with correct prefix
         data: file,
         options: { contentType: file.type, accessLevel: "public" }
       }).result;
