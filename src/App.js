@@ -22,7 +22,7 @@ function VideoUploader() {
     try {
       setLoading(true);
       console.log("Fetching videos...");
-      const { items } = await list({ path: "" });
+      const { items } = await list({ path: "", options: { accessLevel: "public" } });
 
       const normalized = items
         .filter((item) => item && (item.path || item.key))
@@ -53,9 +53,12 @@ function VideoUploader() {
     try {
       setLoading(true);
       await uploadData({
-        key: file.name, // uploads to root
+        key: file.name,
         data: file,
-        options: { contentType: file.type }
+        options: {
+          contentType: file.type,
+          accessLevel: "public" // ✅ ensures path is public/filename
+        }
       }).result;
       alert("Upload successful!");
       setFile(null);
@@ -70,7 +73,10 @@ function VideoUploader() {
   const handlePlay = async (key) => {
     try {
       setLoading(true);
-      const url = await getUrl({ key });
+      const url = await getUrl({
+        key,
+        options: { accessLevel: "public" } // ✅ match location
+      });
       setPlayingUrl(url.url + `?ts=${Date.now()}`);
     } catch (err) {
       alert("Failed to load video: " + err.message);
@@ -84,7 +90,10 @@ function VideoUploader() {
     try {
       setLoading(true);
       console.log("🧨 Attempting to delete:", key);
-      await remove({ key });
+      await remove({
+        key,
+        options: { accessLevel: "public" } // ✅ match location
+      });
       console.log("✅ Deleted:", key);
       setPlayingUrl(null);
       await fetchVideos();
@@ -115,7 +124,7 @@ function VideoUploader() {
       <ul>
         {videos.map((v) => (
           <li key={v.key} style={{ marginBottom: "1em" }}>
-            <strong>{v.key}</strong><br />
+            <strong>{v.key.split("/").pop()}</strong><br />
             <button onClick={() => handlePlay(v.key)} disabled={loading}>
               Play
             </button>{" "}
