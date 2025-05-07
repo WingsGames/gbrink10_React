@@ -23,6 +23,7 @@ function VideoUploader() {
     try {
       setLoading(true);
       const { items } = await list({ path: "", options: { accessLevel: "public" } });
+      console.log("Fetched items:", items); // <-- Add this line
       setVideos(items);
     } catch (err) {
       alert("Failed to list videos: " + err.message);
