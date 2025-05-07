@@ -18,14 +18,15 @@ function VideoUploader() {
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // List videos in public S3 folder
   const fetchVideos = async () => {
     try {
       setLoading(true);
+      console.log("Fetching videos...");
       const { items } = await list({ path: "", options: { accessLevel: "public" } });
-      console.log("Fetched items:", items); // <-- Add this line
-      setVideos(items);
+      console.log("Fetched items:", items);
+      setVideos(items.filter((v) => v && typeof v.key === "string"));
     } catch (err) {
+      console.error("Failed to list videos:", err);
       alert("Failed to list videos: " + err.message);
     } finally {
       setLoading(false);
@@ -36,7 +37,6 @@ function VideoUploader() {
     fetchVideos();
   }, []);
 
-  // Upload selected video to public
   const handleUpload = async () => {
     if (!file) {
       alert("Please select a video to upload.");
@@ -51,7 +51,7 @@ function VideoUploader() {
       }).result;
       alert("Upload successful!");
       setFile(null);
-      fetchVideos();
+      await fetchVideos();
     } catch (err) {
       alert("Upload failed: " + err.message);
     } finally {
@@ -59,12 +59,11 @@ function VideoUploader() {
     }
   };
 
-  // Play video by fetching signed URL
   const handlePlay = async (key) => {
     try {
       setLoading(true);
       const url = await getUrl({ key, options: { accessLevel: "public" } });
-      setPlayingUrl(url.url);
+      setPlayingUrl(url.url + `?ts=${Date.now()}`);
     } catch (err) {
       alert("Failed to load video: " + err.message);
     } finally {
@@ -72,15 +71,15 @@ function VideoUploader() {
     }
   };
 
-  // Delete video from public folder
   const handleDelete = async (key) => {
     if (!window.confirm(`Delete ${key}?`)) return;
     try {
       setLoading(true);
+      console.log("Attempting to delete:", key);
       await remove({ key, options: { accessLevel: "public" } });
-      alert("Deleted!");
+      console.log("Deleted:", key);
       setPlayingUrl(null);
-      fetchVideos();
+      await fetchVideos(); // ensure fresh list after deletion
     } catch (err) {
       alert("Failed to delete: " + err.message);
     } finally {
@@ -100,23 +99,24 @@ function VideoUploader() {
       <button onClick={handleUpload} disabled={loading || !file}>
         Upload Video
       </button>
+
       <h3>Your Videos</h3>
       {loading && <div>Loading...</div>}
+
       <ul>
-      {videos
-        .filter((v) => v && typeof v.key === "string")
-        .map((v) => (
-          <li key={v.key}>
-            <strong>{v.key.split('/').pop()}</strong><br />
+        {videos.map((v) => (
+          <li key={v.key} style={{ marginBottom: "1em" }}>
+            <strong>{v.key.split("/").pop()}</strong><br />
             <button onClick={() => handlePlay(v.key)} disabled={loading}>
               Play
-            </button>
+            </button>{" "}
             <button onClick={() => handleDelete(v.key)} disabled={loading}>
               Delete
             </button>
           </li>
         ))}
-    </ul>
+      </ul>
+
       {playingUrl && (
         <div>
           <video src={playingUrl} controls width="400" />
