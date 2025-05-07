@@ -8,7 +8,6 @@ import {
   getUrl,
   remove,
 } from "aws-amplify/storage";
-import { getCurrentUser } from "aws-amplify/auth";
 import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure(awsExports);
@@ -19,22 +18,11 @@ function VideoUploader() {
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Debug: Check current user identity
-  useEffect(() => {
-    getCurrentUser()
-      .then((user) => {
-        console.log("👤 Current Cognito User:", user);
-      })
-      .catch((err) => {
-        console.warn("⚠️ Could not retrieve current user identity:", err);
-      });
-  }, []);
-
   const fetchVideos = async () => {
     try {
       setLoading(true);
       console.log("Fetching videos...");
-      const { items } = await list({ path: "", options: { accessLevel: "public" } });
+      const { items } = await list({ path: "" });
 
       const normalized = items
         .filter((item) => item && (item.path || item.key))
@@ -65,9 +53,9 @@ function VideoUploader() {
     try {
       setLoading(true);
       await uploadData({
-        key: `public/${file.name}`, // upload path
+        key: file.name, // uploads to root
         data: file,
-        options: { contentType: file.type, accessLevel: "public" }
+        options: { contentType: file.type }
       }).result;
       alert("Upload successful!");
       setFile(null);
@@ -82,7 +70,7 @@ function VideoUploader() {
   const handlePlay = async (key) => {
     try {
       setLoading(true);
-      const url = await getUrl({ key, options: { accessLevel: "public" } });
+      const url = await getUrl({ key });
       setPlayingUrl(url.url + `?ts=${Date.now()}`);
     } catch (err) {
       alert("Failed to load video: " + err.message);
@@ -96,7 +84,7 @@ function VideoUploader() {
     try {
       setLoading(true);
       console.log("🧨 Attempting to delete:", key);
-      await remove({ key, options: { accessLevel: "public" } });
+      await remove({ key });
       console.log("✅ Deleted:", key);
       setPlayingUrl(null);
       await fetchVideos();
@@ -127,7 +115,7 @@ function VideoUploader() {
       <ul>
         {videos.map((v) => (
           <li key={v.key} style={{ marginBottom: "1em" }}>
-            <strong>{v.key.split("/").pop()}</strong><br />
+            <strong>{v.key}</strong><br />
             <button onClick={() => handlePlay(v.key)} disabled={loading}>
               Play
             </button>{" "}
