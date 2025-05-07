@@ -8,6 +8,7 @@ import {
   getUrl,
   remove,
 } from "aws-amplify/storage";
+import { getCurrentUser } from "aws-amplify/auth";
 import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure(awsExports);
@@ -17,6 +18,17 @@ function VideoUploader() {
   const [videos, setVideos] = useState([]);
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Debug: Check current user identity
+  useEffect(() => {
+    getCurrentUser()
+      .then((user) => {
+        console.log("👤 Current Cognito User:", user);
+      })
+      .catch((err) => {
+        console.warn("⚠️ Could not retrieve current user identity:", err);
+      });
+  }, []);
 
   const fetchVideos = async () => {
     try {
@@ -53,7 +65,7 @@ function VideoUploader() {
     try {
       setLoading(true);
       await uploadData({
-        key: `public/${file.name}`, // FIXED: upload with correct prefix
+        key: `public/${file.name}`, // upload path
         data: file,
         options: { contentType: file.type, accessLevel: "public" }
       }).result;
@@ -83,12 +95,13 @@ function VideoUploader() {
     if (!window.confirm(`Delete ${key}?`)) return;
     try {
       setLoading(true);
-      console.log("Attempting to delete:", key);
+      console.log("🧨 Attempting to delete:", key);
       await remove({ key, options: { accessLevel: "public" } });
-      console.log("Deleted:", key);
+      console.log("✅ Deleted:", key);
       setPlayingUrl(null);
       await fetchVideos();
     } catch (err) {
+      console.error("❌ Delete failed:", err);
       alert("Failed to delete: " + err.message);
     } finally {
       setLoading(false);
