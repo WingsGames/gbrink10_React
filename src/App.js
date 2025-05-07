@@ -103,20 +103,20 @@ function VideoUploader() {
       <h3>Your Videos</h3>
       {loading && <div>Loading...</div>}
       <ul>
-        {videos
-          .filter((v) => v && typeof v.path === "string")
-          .map((v) => (
-            <li key={v.path}>
-              <strong>{v.path.split('/').pop()}</strong><br />
-              <button onClick={() => handlePlay(v.path)} disabled={loading}>
-                Play
-              </button>
-              <button onClick={() => handleDelete(v.path)} disabled={loading}>
-                Delete
-              </button>
-            </li>
-          ))}
-      </ul>
+      {videos
+        .filter((v) => v && typeof v.key === "string")
+        .map((v) => (
+          <li key={v.key}>
+            <strong>{v.key.split('/').pop()}</strong><br />
+            <button onClick={() => handlePlay(v.key)} disabled={loading}>
+              Play
+            </button>
+            <button onClick={() => handleDelete(v.key)} disabled={loading}>
+              Delete
+            </button>
+          </li>
+        ))}
+    </ul>
       {playingUrl && (
         <div>
           <video src={playingUrl} controls width="400" />
