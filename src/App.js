@@ -103,7 +103,8 @@ function VideoUploader() {
       {loading && <div>Loading...</div>}
       <ul>
         {videos.map((v) => (
-          <li key={v.key}>
+          <li key={v.key} style={{ marginBottom: '1em' }}>
+            <strong>{v.key.replace(/^public\//, '')}</strong><br />
             <button onClick={() => handlePlay(v.key)} disabled={loading}>
               Play
             </button>{" "}
