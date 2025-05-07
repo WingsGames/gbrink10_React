@@ -104,14 +104,14 @@ function VideoUploader() {
       {loading && <div>Loading...</div>}
       <ul>
         {videos
-          .filter((v) => v && typeof v.key === "string")
+          .filter((v) => v && typeof v.path === "string")
           .map((v) => (
-            <li key={v.key}>
-              <strong>{v.key.split('/').pop()}</strong><br />
-              <button onClick={() => handlePlay(v.key)} disabled={loading}>
+            <li key={v.path}>
+              <strong>{v.path.split('/').pop()}</strong><br />
+              <button onClick={() => handlePlay(v.path)} disabled={loading}>
                 Play
-              </button>{" "}
-              <button onClick={() => handleDelete(v.key)} disabled={loading}>
+              </button>
+              <button onClick={() => handleDelete(v.path)} disabled={loading}>
                 Delete
               </button>
             </li>
