@@ -103,7 +103,7 @@ function VideoUploader() {
       {loading && <div>Loading...</div>}
       <ul>
         {videos
-          .filter((v) => v && v.key)
+          .filter((v) => v && typeof v.key === "string")
           .map((v) => (
             <li key={v.key}>
               <strong>{v.key.split('/').pop()}</strong><br />
