@@ -23,8 +23,16 @@ function VideoUploader() {
       setLoading(true);
       console.log("Fetching videos...");
       const { items } = await list({ path: "", options: { accessLevel: "public" } });
-      console.log("Fetched items:", items);
-      setVideos(items.filter((v) => v && typeof v.key === "string"));
+
+      const mapped = items
+        .map((item) => ({
+          key: item.key || item.path, // support both key or path
+          lastModified: item.lastModified,
+        }))
+        .filter((v) => typeof v.key === "string");
+
+      console.log("Mapped items:", mapped);
+      setVideos(mapped);
     } catch (err) {
       console.error("Failed to list videos:", err);
       alert("Failed to list videos: " + err.message);
@@ -63,7 +71,7 @@ function VideoUploader() {
     try {
       setLoading(true);
       const url = await getUrl({ key, options: { accessLevel: "public" } });
-      setPlayingUrl(url.url + `?ts=${Date.now()}`);
+      setPlayingUrl(url.url + `?ts=${Date.now()}`); // cache-busting
     } catch (err) {
       alert("Failed to load video: " + err.message);
     } finally {
@@ -79,7 +87,7 @@ function VideoUploader() {
       await remove({ key, options: { accessLevel: "public" } });
       console.log("Deleted:", key);
       setPlayingUrl(null);
-      await fetchVideos(); // ensure fresh list after deletion
+      await fetchVideos();
     } catch (err) {
       alert("Failed to delete: " + err.message);
     } finally {
