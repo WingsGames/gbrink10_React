@@ -18,12 +18,12 @@ function VideoUploader() {
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // List videos in public S3 folder
+  // Fetch video list
   const fetchVideos = async () => {
     try {
       setLoading(true);
       const { items } = await list({ path: "", options: { accessLevel: "public" } });
-      console.log("Fetched items:", items); // <-- Add this line
+      console.log("Fetched items:", items);
       setVideos(items);
     } catch (err) {
       alert("Failed to list videos: " + err.message);
@@ -36,7 +36,7 @@ function VideoUploader() {
     fetchVideos();
   }, []);
 
-  // Upload selected video to public
+  // Upload video
   const handleUpload = async () => {
     if (!file) {
       alert("Please select a video to upload.");
@@ -51,7 +51,7 @@ function VideoUploader() {
       }).result;
       alert("Upload successful!");
       setFile(null);
-      fetchVideos();
+      await fetchVideos();
     } catch (err) {
       alert("Upload failed: " + err.message);
     } finally {
@@ -59,7 +59,7 @@ function VideoUploader() {
     }
   };
 
-  // Play video by fetching signed URL
+  // Play video
   const handlePlay = async (key) => {
     try {
       setLoading(true);
@@ -72,15 +72,15 @@ function VideoUploader() {
     }
   };
 
-  // Delete video from public folder
+  // Delete video
   const handleDelete = async (key) => {
     if (!window.confirm(`Delete ${key}?`)) return;
     try {
       setLoading(true);
       await remove({ key, options: { accessLevel: "public" } });
-      alert("Deleted!");
+      console.log("Deleted:", key);
+      await fetchVideos(); // refresh list after delete
       setPlayingUrl(null);
-      fetchVideos();
     } catch (err) {
       alert("Failed to delete: " + err.message);
     } finally {
@@ -103,20 +103,20 @@ function VideoUploader() {
       <h3>Your Videos</h3>
       {loading && <div>Loading...</div>}
       <ul>
-      {videos
-        .filter((v) => v && typeof v.key === "string")
-        .map((v) => (
-          <li key={v.key}>
-            <strong>{v.key.split('/').pop()}</strong><br />
-            <button onClick={() => handlePlay(v.key)} disabled={loading}>
-              Play
-            </button>
-            <button onClick={() => handleDelete(v.key)} disabled={loading}>
-              Delete
-            </button>
-          </li>
-        ))}
-    </ul>
+        {videos
+          .filter((v) => v && typeof v.key === "string")
+          .map((v) => (
+            <li key={v.key} style={{ marginBottom: "1em" }}>
+              <strong>{v.key.split("/").pop()}</strong><br />
+              <button onClick={() => handlePlay(v.key)} disabled={loading}>
+                Play
+              </button>{" "}
+              <button onClick={() => handleDelete(v.key)} disabled={loading}>
+                Delete
+              </button>
+            </li>
+          ))}
+      </ul>
       {playingUrl && (
         <div>
           <video src={playingUrl} controls width="400" />
