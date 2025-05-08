@@ -23,8 +23,7 @@ function VideoUploader() {
       setLoading(true);
       console.log("🔍 Fetching videos...");
       const { items } = await list({
-        path: "", // root of "public/" if accessLevel is set
-        options: { accessLevel: "public" },
+        path: "", // root of "public/" if accessLevel is set       
       });
 
       const normalized = items
