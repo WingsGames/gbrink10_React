@@ -12,7 +12,7 @@ import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure(awsExports);
 
-function VideoUploader({ user }) {
+function VideoUploader() {
   const [file, setFile] = useState(null);
   const [videos, setVideos] = useState([]);
   const [playingUrl, setPlayingUrl] = useState(null);
@@ -22,9 +22,10 @@ function VideoUploader({ user }) {
     try {
       setLoading(true);
       console.log("🔍 Fetching videos...");
+
       const { items } = await list({
         path: "",
-        options: { accessLevel: "protected" },
+        options: { accessLevel: "protected" }
       });
 
       const normalized = items
@@ -74,7 +75,11 @@ function VideoUploader({ user }) {
   const handlePlay = async (key) => {
     try {
       setLoading(true);
-      const url = await getUrl({ key, options: { accessLevel: "protected" } });
+      const fileName = key.split("/").pop(); // only filename
+      const url = await getUrl({
+        key: fileName,
+        options: { accessLevel: "protected" }
+      });
       setPlayingUrl(url.url + `?ts=${Date.now()}`);
     } catch (err) {
       alert("❌ Failed to load video: " + err.message);
@@ -84,12 +89,18 @@ function VideoUploader({ user }) {
   };
 
   const handleDelete = async (key) => {
-    if (!window.confirm(`Are you sure you want to delete "${key}"?`)) return;
+    if (!window.confirm(`Delete ${key}?`)) return;
     try {
       setLoading(true);
-      console.log("🧨 Deleting:", key);
-      await remove({ key, options: { accessLevel: "protected" } });
-      console.log("✅ Deleted:", key);
+      const fileName = key.split("/").pop(); // only filename
+      console.log("🧨 Deleting:", fileName);
+
+      await remove({
+        key: fileName,
+        options: { accessLevel: "protected" }
+      });
+
+      console.log("✅ Deleted:", fileName);
       setPlayingUrl(null);
       await fetchVideos();
     } catch (err) {
@@ -120,8 +131,12 @@ function VideoUploader({ user }) {
           <li key={v.key}>
             <strong>{v.key.split("/").pop()}</strong>
             <br />
-            <button onClick={() => handlePlay(v.key)} disabled={loading}>Play</button>{" "}
-            <button onClick={() => handleDelete(v.key)} disabled={loading}>Delete</button>
+            <button onClick={() => handlePlay(v.key)} disabled={loading}>
+              Play
+            </button>{" "}
+            <button onClick={() => handleDelete(v.key)} disabled={loading}>
+              Delete
+            </button>
           </li>
         ))}
       </ul>
@@ -142,7 +157,7 @@ function App() {
         <main style={{ padding: 30 }}>
           <h1>Hello, {user?.username}</h1>
           <button onClick={signOut}>Sign Out</button>
-          <VideoUploader user={user} />
+          <VideoUploader />
         </main>
       )}
     </Authenticator>
