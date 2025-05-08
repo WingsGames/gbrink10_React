@@ -8,6 +8,7 @@ import {
   getUrl,
   remove,
 } from "aws-amplify/storage";
+import { getCurrentUser } from "aws-amplify/auth";
 import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure(awsExports);
@@ -17,21 +18,37 @@ function VideoUploader() {
   const [videos, setVideos] = useState([]);
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
+
+  // ✅ Get current user ID once at init
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserId(user?.userId || user?.username); // fallback
+      } catch (err) {
+        console.error("Failed to get user:", err);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const fetchVideos = async () => {
+    if (!userId) return;
+
     try {
       setLoading(true);
       console.log("🔍 Fetching videos...");
-
       const { items } = await list({
-        path: "",
+        path: `protected/${userId}/`,
         options: { accessLevel: "protected" }
       });
 
       const normalized = items
-        .filter((item) => item && (item.key || item.path))
+        .filter((item) => item && item.key)
         .map((item) => ({
-          key: item.key || item.path,
+          key: item.key,
+          name: item.key.split("/").pop(),
           lastModified: item.lastModified,
         }));
 
@@ -46,27 +63,30 @@ function VideoUploader() {
   };
 
   useEffect(() => {
-    fetchVideos();
-  }, []);
+    if (userId) fetchVideos();
+  }, [userId]);
 
   const handleUpload = async () => {
-    if (!file) return alert("Please select a video to upload.");
+    if (!file || !userId) return alert("Please select a video to upload.");
     try {
       setLoading(true);
-      const result = await uploadData({
-        key: file.name,
+      const key = `protected/${userId}/${file.name}`;
+      await uploadData({
+        key,
         data: file,
         options: {
           accessLevel: "protected",
           contentType: file.type,
-        },
+        }
       }).result;
-      console.log("✅ Upload result:", result);
+
+      console.log("✅ Upload success:", key);
       alert("Upload successful!");
       setFile(null);
       await fetchVideos();
     } catch (err) {
-      alert("❌ Upload failed: " + err.message);
+      console.error("❌ Upload error:", err);
+      alert("Upload failed: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -75,9 +95,8 @@ function VideoUploader() {
   const handlePlay = async (key) => {
     try {
       setLoading(true);
-      const fileName = key.split("/").pop(); // only filename
       const url = await getUrl({
-        key: fileName,
+        key,
         options: { accessLevel: "protected" }
       });
       setPlayingUrl(url.url + `?ts=${Date.now()}`);
@@ -92,15 +111,14 @@ function VideoUploader() {
     if (!window.confirm(`Delete ${key}?`)) return;
     try {
       setLoading(true);
-      const fileName = key.split("/").pop(); // only filename
-      console.log("🧨 Deleting:", fileName);
+      console.log("🧨 Deleting:", key);
 
       await remove({
-        key: fileName,
+        key,
         options: { accessLevel: "protected" }
       });
 
-      console.log("✅ Deleted:", fileName);
+      console.log("✅ Deleted:", key);
       setPlayingUrl(null);
       await fetchVideos();
     } catch (err) {
@@ -129,14 +147,9 @@ function VideoUploader() {
       <ul>
         {videos.map((v) => (
           <li key={v.key}>
-            <strong>{v.key.split("/").pop()}</strong>
-            <br />
-            <button onClick={() => handlePlay(v.key)} disabled={loading}>
-              Play
-            </button>{" "}
-            <button onClick={() => handleDelete(v.key)} disabled={loading}>
-              Delete
-            </button>
+            <strong>{v.name}</strong><br />
+            <button onClick={() => handlePlay(v.key)} disabled={loading}>Play</button>{" "}
+            <button onClick={() => handleDelete(v.key)} disabled={loading}>Delete</button>
           </li>
         ))}
       </ul>
