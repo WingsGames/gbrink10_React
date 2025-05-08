@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Amplify } from "aws-amplify";
-import { Auth } from "aws-amplify/auth";
 import awsExports from "./aws-exports";
 import { Authenticator } from "@aws-amplify/ui-react";
 import {
@@ -13,31 +12,18 @@ import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure(awsExports);
 
-function VideoUploader() {
+function VideoUploader({ user }) {
   const [file, setFile] = useState(null);
   const [videos, setVideos] = useState([]);
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [identityId, setIdentityId] = useState(null);
-
-  useEffect(() => {
-    const init = async () => {
-      const credentials = await Auth.currentCredentials();
-      const id = credentials.identityId;
-      setIdentityId(id);
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    if (identityId) fetchVideos();
-  }, [identityId]);
 
   const fetchVideos = async () => {
     try {
       setLoading(true);
+      console.log("🔍 Fetching videos...");
       const { items } = await list({
-        path: `protected/${identityId}/`,
+        path: "",
         options: { accessLevel: "protected" },
       });
 
@@ -57,6 +43,10 @@ function VideoUploader() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
   const handleUpload = async () => {
     if (!file) return alert("Please select a video to upload.");
@@ -97,7 +87,9 @@ function VideoUploader() {
     if (!window.confirm(`Are you sure you want to delete "${key}"?`)) return;
     try {
       setLoading(true);
+      console.log("🧨 Deleting:", key);
       await remove({ key, options: { accessLevel: "protected" } });
+      console.log("✅ Deleted:", key);
       setPlayingUrl(null);
       await fetchVideos();
     } catch (err) {
@@ -150,7 +142,7 @@ function App() {
         <main style={{ padding: 30 }}>
           <h1>Hello, {user?.username}</h1>
           <button onClick={signOut}>Sign Out</button>
-          <VideoUploader />
+          <VideoUploader user={user} />
         </main>
       )}
     </Authenticator>
