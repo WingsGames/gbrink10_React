@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Amplify } from "aws-amplify";
+import { Amplify, Auth } from "aws-amplify";
 import awsExports from "./aws-exports";
 import { Authenticator } from "@aws-amplify/ui-react";
 import {
@@ -17,40 +17,51 @@ function VideoUploader() {
   const [videos, setVideos] = useState([]);
   const [playingUrl, setPlayingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [identityId, setIdentityId] = useState(null);
+
+  useEffect(() => {
+    const init = async () => {
+      const credentials = await Auth.currentCredentials();
+      const id = credentials.identityId;
+      setIdentityId(id);
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (identityId) fetchVideos();
+  }, [identityId]);
 
   const fetchVideos = async () => {
     try {
       setLoading(true);
       const { items } = await list({
-        path: "",
+        path: `protected/${identityId}/`,
         options: { accessLevel: "protected" },
       });
 
       const normalized = items
-        .filter((item) => item?.key)
+        .filter((item) => item && (item.key || item.path))
         .map((item) => ({
-          key: item.key,
+          key: item.key || item.path,
           lastModified: item.lastModified,
         }));
 
+      console.log("✅ Mapped items:", normalized);
       setVideos(normalized);
     } catch (err) {
-      console.error("Failed to list videos:", err);
+      console.error("❌ Failed to list videos:", err);
       alert("Failed to list videos: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchVideos();
-  }, []);
-
   const handleUpload = async () => {
     if (!file) return alert("Please select a video to upload.");
     try {
       setLoading(true);
-      await uploadData({
+      const result = await uploadData({
         key: file.name,
         data: file,
         options: {
@@ -58,11 +69,12 @@ function VideoUploader() {
           contentType: file.type,
         },
       }).result;
+      console.log("✅ Upload result:", result);
       alert("Upload successful!");
       setFile(null);
       await fetchVideos();
     } catch (err) {
-      alert("Upload failed: " + err.message);
+      alert("❌ Upload failed: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -71,29 +83,24 @@ function VideoUploader() {
   const handlePlay = async (key) => {
     try {
       setLoading(true);
-      const url = await getUrl({
-        key,
-        options: { accessLevel: "protected" },
-      });
+      const url = await getUrl({ key, options: { accessLevel: "protected" } });
       setPlayingUrl(url.url + `?ts=${Date.now()}`);
     } catch (err) {
-      alert("Failed to load video: " + err.message);
+      alert("❌ Failed to load video: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (key) => {
-    if (!window.confirm(`Delete ${key}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${key}"?`)) return;
     try {
       setLoading(true);
-      await remove({
-        key,
-        options: { accessLevel: "protected" },
-      });
+      await remove({ key, options: { accessLevel: "protected" } });
       setPlayingUrl(null);
       await fetchVideos();
     } catch (err) {
+      console.error("❌ Delete failed:", err);
       alert("Failed to delete: " + err.message);
     } finally {
       setLoading(false);
@@ -118,7 +125,8 @@ function VideoUploader() {
       <ul>
         {videos.map((v) => (
           <li key={v.key}>
-            <strong>{v.key.split("/").pop()}</strong><br />
+            <strong>{v.key.split("/").pop()}</strong>
+            <br />
             <button onClick={() => handlePlay(v.key)} disabled={loading}>Play</button>{" "}
             <button onClick={() => handleDelete(v.key)} disabled={loading}>Delete</button>
           </li>
